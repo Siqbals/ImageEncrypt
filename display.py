@@ -1,11 +1,13 @@
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QStackedLayout,
-    QSpacerItem, QSizePolicy
+    QSizePolicy
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 
-#drag and drop region class 
+# ---------- Drag and Drop Widget ----------
 class FileDropBox(QLabel):
+    file_dropped = pyqtSignal()  # Signal emitted when a file is dropped
+
     def __init__(self, text="Drop file here", parent=None):
         super().__init__(text, parent)
         self.setStyleSheet(
@@ -15,41 +17,37 @@ class FileDropBox(QLabel):
         self.setAcceptDrops(True)
         self.dropped_file_path = None
 
-    #event to accept a drop 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
             event.accept()
         else:
             event.ignore()
 
-    #once click released have the file url here 
     def dropEvent(self, event):
         if event.mimeData().hasUrls():
             file_url = event.mimeData().urls()[0]
             self.dropped_file_path = file_url.toLocalFile()
             self.setText(f"Selected file:\n{self.dropped_file_path}")
+            self.file_dropped.emit()
 
-
+# ---------- Main Application ----------
 app = QApplication([])
 
-#main window settings 
+# ---------- Window Setup ----------
 window = QWidget()
 window.setWindowTitle("Iris Encrypt v1")
 window.setFixedSize(800, 500)
 window.setStyleSheet("background-color: black;")
 
-#all 3 menu windows container 
-allmenu = QStackedLayout()
+allmenu = QStackedLayout()  # Layout stack to hold multiple screens
 
-#home menu
+# ---------- Home Menu ----------
 homemenu = QVBoxLayout()
 
-#title 
 title = QLabel("Iris Encrypt v1")
 title.setStyleSheet("color: lime; font-size: 24px; font-weight: bold;")
 title.setAlignment(Qt.AlignLeft)
 
-#description
 desc = QLabel(
     "Welcome to Iris Encrypt v1, a place to securely encrypt any file using your iris!\n"
     "To get started, press Encrypt if you'd like to encrypt a file, or Decrypt to decrypt one."
@@ -57,7 +55,6 @@ desc = QLabel(
 desc.setStyleSheet("color: white; font-size: 14px;")
 desc.setAlignment(Qt.AlignLeft)
 
-#encrypt and de crypt buttons 
 encryptbtn = QPushButton("Encrypt")
 encryptbtn.setStyleSheet("background-color: green; color: white; font-weight: bold;")
 encryptbtn.setFixedHeight(40)
@@ -66,12 +63,10 @@ decryptbtn = QPushButton("Decrypt")
 decryptbtn.setStyleSheet("background-color: darkred; color: white; font-weight: bold;")
 decryptbtn.setFixedHeight(40)
 
-#btn containers to have horizontal layout 
 btncont = QHBoxLayout()
 btncont.addWidget(encryptbtn)
 btncont.addWidget(decryptbtn)
 
-#add averything to the home menu layout 
 homemenu.addWidget(title)
 homemenu.addWidget(desc)
 homemenu.addSpacing(20)
@@ -81,15 +76,13 @@ homemenu.addStretch()
 homecont = QWidget()
 homecont.setLayout(homemenu)
 
-#encrypt menu 
+# ---------- Encrypt Menu ----------
 encryptmenu = QVBoxLayout()
 
-#encrypt title 
 encrypttitle = QLabel("Encryption Panel")
 encrypttitle.setStyleSheet("color: lime; font-size: 20px; font-weight: bold;")
 encrypttitle.setAlignment(Qt.AlignLeft)
 
-#encrypt description
 encryptdesc = QLabel(
     "To get started, drag and drop your desired file on the left\n"
     "Then drag and drop your image of your iris on the right."
@@ -97,43 +90,57 @@ encryptdesc = QLabel(
 encryptdesc.setStyleSheet("color: white; font-size: 14px;")
 encryptdesc.setAlignment(Qt.AlignLeft)
 
-#drop the file on left 
+# File and Iris Drop Boxes
 file_drop = FileDropBox("Drop file here")
 file_drop.setFixedSize(375, 300)
 
-#drop the file on right 
 iris_drop = FileDropBox("Drop iris image here")
 iris_drop.setFixedSize(375, 300)
 
-#back button on bottom row 
+# Bottom layout: file box (left), iris box (right)
 bottom_row = QHBoxLayout()
 bottom_row.addWidget(file_drop)
 bottom_row.addStretch()
 bottom_row.addWidget(iris_drop)
+
+# Encrypt button (initially hidden)
+encrypt_action_btn = QPushButton("Encrypt")
+encrypt_action_btn.setStyleSheet("background-color: green; color: white; font-weight: bold;")
+encrypt_action_btn.setVisible(False)
+
+# Back button
 backbtn = QPushButton("Back")
 backbtn.setStyleSheet("background-color: gray; color: white; font-weight: bold;")
 
-#add aeverything to the encrypt menu layout 
+# Check if both drop boxes are filled
+def update_encrypt_button():
+    if file_drop.dropped_file_path and iris_drop.dropped_file_path:
+        encrypt_action_btn.setVisible(True)
+
+# Connect signals
+file_drop.file_dropped.connect(update_encrypt_button)
+iris_drop.file_dropped.connect(update_encrypt_button)
+
+# Add widgets to encrypt menu
 encryptmenu.addWidget(encrypttitle)
 encryptmenu.addWidget(encryptdesc)
 encryptmenu.addStretch()
 encryptmenu.addLayout(bottom_row)
+encryptmenu.addWidget(encrypt_action_btn)
 encryptmenu.addWidget(backbtn)
 
-#add everything to the encrypt layout container 
 encryptcont = QWidget()
 encryptcont.setLayout(encryptmenu)
 
-#add everything to the all meny container 
+# ---------- Add Screens to Main Layout ----------
 allmenu.addWidget(homecont)
 allmenu.addWidget(encryptcont)
 
-#connect menu to buttons 
+# ---------- Navigation Logic ----------
 encryptbtn.clicked.connect(lambda: allmenu.setCurrentIndex(1))
 backbtn.clicked.connect(lambda: allmenu.setCurrentIndex(0))
 
-
-#create the window 
+# ---------- Final Window Setup ----------
 window.setLayout(allmenu)
 window.show()
 app.exec_()

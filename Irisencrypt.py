@@ -86,7 +86,6 @@ def irissig(image_path):
     else:
         return "Iris not detected."
 
-
 image_path = "iristest.jpg"
 print("Unique Iris Signature:", irissig(image_path))
 
